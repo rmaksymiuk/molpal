@@ -45,24 +45,42 @@ class DockingObjective(Objective):
     ):
         args = ps.args.gen_args(f"--config {objective_config}")
 
-        metadata_template = ps.build_metadata(args.screen_type, args.metadata_template)
-        self.virtual_screen = ps.virtual_screen(
-            args.screen_type,
-            args.receptors,
-            args.center,
-            args.size,
-            metadata_template,
-            args.pdbids,
-            args.docked_ligand_file,
-            args.buffer,
-            args.ncpu,
-            args.base_name,
-            path,
-            args.reduction,
-            args.receptor_reduction,
-            args.k,
-        )
-
+        #Support for DOCK3.8 on the UCSF cluster
+        if args.screen_type in ["dock3", "dock3.8"]:
+            self.virtual_screen = ps.DOCK3VirtualScreen(
+                output_dir = args.docking_output_dir,
+                screen_type = args.screen_type,
+                dockfiles = args.dockfiles,
+                pipeline_scripts = args.pipeline_scripts,
+                ncpu = args.ncpu,
+                library_file = args.library,
+            )
+        else:
+            metadata_template = ps.build_metadata(args.screen_type, args.metadata_template)
+            self.virtual_screen = ps.virtual_screen(
+                args.screen_type,
+                args.receptors,
+                args.center,
+                args.size,
+                metadata_template,
+                args.pdbids,
+                args.docked_ligand_file,
+                args.buffer,
+                args.ncpu,
+                args.base_name,
+                path,
+                args.reduction,
+                args.receptor_reduction,
+                args.k,
+                args.dockfiles,
+                args.pipeline_scripts,
+            )
+            # Print all arguments as a dictionary
+        print("\n=== All Arguments ===")
+        args_dict = vars(args)
+        for key, value in args_dict.items():
+            print(f"{key}: {value}")
+        print("==================\n")
         atexit.register(self.cleanup)
 
         super().__init__(minimize=minimize)
@@ -86,7 +104,21 @@ class DockingObjective(Objective):
         Y = self.c * self.virtual_screen(smis)
         Y = np.where(np.isnan(Y), None, Y)
 
-        return dict(zip(smis, Y))
+        # Only do detailed matching for DOCK3.8
+        if self.virtual_screen.screen_type in ["dock3", "dock3.8"]:
+            # Get the stored results which contain exact SMILES-ZINC_ID-score mappings
+            docking_results = self.virtual_screen._results
+            
+            # Create mapping of SMILES to scores using stored results
+            smiles_to_score = {}
+            for result in docking_results:
+                smiles_to_score[result.smiles] = self.c * result.score
+            
+            # Map each input SMILES to its score, using None for unmatched SMILES
+            return {smi: smiles_to_score.get(smi, None) for smi in smis}
+        else:
+            # For other docking methods, use simple zip
+            return dict(zip(smis, Y))
 
     def cleanup(self):
         results = self.virtual_screen.results()
