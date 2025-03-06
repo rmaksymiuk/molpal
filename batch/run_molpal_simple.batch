@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#SBATCH -J molpal_simple
+#SBATCH --output=logs/molpal_%j.out
+#SBATCH --error=logs/molpal_%j.err
+
+#SBATCH -N 1
+#SBATCH --ntasks-per-node 4
+#SBATCH -c 1
+#SBATCH --mem-per-cpu 2G
+# #SBATCH -t 1:00:00
+#SBATCH -p gpu.q
+#SBATCH --nodelist=epyc-A40
+
+# Environment setup
+MOLPAL_ENV="/nfs/home/rmaksymiuk/.conda/envs/molpal"
+export PATH="$MOLPAL_ENV/bin:$PATH"
+
+# Simple Ray initialization
+ray start --head --num-cpus=4 || true
+
+# Run MolPAL with minimal options
+molpal run --config $1 --ncpu 4
+
+# Clean up
+ray stop

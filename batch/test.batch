@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH -J test_job          # Job name
+#SBATCH --output=test_%j.out # Output file
+#SBATCH --error=test_%j.err  # Error file
+
+#SBATCH -N 1                 # Request 1 node
+#SBATCH --ntasks-per-node 1  # Run 1 task
+#SBATCH -c 1                 # 1 CPU per task
+#SBATCH --mem=1G             # Request 1GB memory
+#SBATCH -t 0:10:00           # Request 10 minutes
+#SBATCH -p all.q             # Use the default partition
+
+# Print job info
+echo "Job started at $(date)"
+echo "Running on host: $(hostname)"
+echo "Job ID: $SLURM_JOB_ID"
+
+# Print system info
+echo "CPU info:"
+lscpu | grep "Model name"
+echo "Memory info:"
+free -h
+
+# Print environment
+echo "Current directory: $(pwd)"
+echo "Python version: $(python --version 2>&1)"
+
+# Sleep for a minute to keep the job running
+echo "Sleeping for 60 seconds..."
+sleep 60
+
+echo "Job completed at $(date)"
