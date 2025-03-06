@@ -180,3 +180,29 @@ prep_glide_csv.py
 *.bz2
 *.cxsmiles
 extract_smis.py
+
+
+# Data files
+data/
+data/*
+*.smi
+*.csv
+*.sdf
+*.mol2
+
+# Log files
+logs/
+logs/*
+*.log
+*.out
+*.err
+
+# Output directories
+output/
+results/
+molpal_*_results/
+
+# Temporary files
+temp/
+tmp/
+*.tmp
